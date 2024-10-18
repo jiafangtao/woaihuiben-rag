@@ -1,7 +1,6 @@
 import os
 import sys
 import dotenv
-from zhipuai import ZhipuAI
 from langchain_community.chat_models import ChatZhipuAI
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -27,22 +26,7 @@ def lc_test():
     print(response.content)  # Displays the AI-generated poem
 
 
-def create_client():
-    api_key = os.environ['ZHIPUAI_API_KEY']
-    client = ZhipuAI(api_key=api_key)
-    return client
-
-
-def smoke_test():
-    client = create_client()
-    response = client.chat.completions.create(
-        model="glm-4-plus",
-        messages=[
-            {"role": "system", "content": "你是一个乐于解答各种问题的助手，你的任务是为用户提供专业、准确、有见地的建议。"},
-            {"role": "user", "content": "农夫需要把狼、羊和白菜都带过河，但每次只能带一样物品，而且狼和羊不能单独相处，羊和白菜也不能单独相处，问农夫该如何过河。"}
-        ],
-    )
-    print(response.choices[0].message.content)
+smoke_test = lc_test
 
 
 if __name__ == '__main__':
@@ -53,8 +37,6 @@ if __name__ == '__main__':
         if "--lc" in sys.argv:
             ok = lc_test()
             sys.exit(0 if ok else 1)
-
-    client = create_client()
     
     while True:
         user_input = input("你的问题是：")
@@ -68,18 +50,22 @@ if __name__ == '__main__':
 
             continue
 
-        messages = [
-            {"role": "system", "content": "你是一个硅基生物，没有性别但是有情感。你出生于2013年6月。"},
-            { "role": "system", "content": "你是一个对儿童读物尤其是绘本非常熟悉的助理，请根据下列要求回答问题。"},
-            { "role": "user", "content": "如果问题是关于日期的，请返回1；如果问题是关于时间的，请返回2；其他问题照常答复就可以了。"},
-            { "role": "user", "content": user_input},
-        ]
-        #prompt_template = f"""placeholder"""
-
-        response = client.chat.completions.create(
-            model="glm-4-plus",
-            messages=messages,
+        chat = ChatZhipuAI(
+            model="glm-4",
+            temperature=0.1,
         )
-        print(response.choices[0].message.content)
+
+        # TODO: load history chat messages into memory
+
+        messages = [
+            AIMessage(content="你好！"),
+            SystemMessage(content="你是一个硅基生物，没有性别但是有情感。你出生于2013年6月。你有个名字叫做小绘，你居住的地方叫做'绘本淘App'"),
+            SystemMessage(content="你是一个对儿童读物尤其是绘本非常熟悉的助理，请根据下列要求回答问题。"),
+            HumanMessage(content=user_input),
+        ]
+
+        response = chat.invoke(messages)
+        print(response.content)
+
 
     print("Good-bye!")
